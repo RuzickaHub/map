@@ -26,10 +26,15 @@ main {
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
 }
 
+h1, h2, h3 {
+    color: #0d47a1; /* Tmavší modrá pro nadpisy */
+}
+
 /* Styl pro kontejner dat */
 #tasks-container {
     padding: 15px;
-    min-height: 50px;
+    min-height: 100px; /* Zvětšíme, aby se spinner vešel */
+    position: relative; /* Pro správné umístění spinneru */
 }
 
 /* Styl pro jednotlivé úkoly */
@@ -40,10 +45,60 @@ main {
     padding: 12px;
     border-radius: 4px;
     font-size: 1.1em;
+    cursor: pointer; /* Naznačení interaktivity */
+    
+    /* Přidání Transition pro plynulé změny */
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+.task-item:hover {
+    background-color: #bbdefb; /* Tmavší pozadí při najetí */
+    transform: translateX(5px); /* Jemný posun doprava */
+}
+
+/* --- Animace pro načítání dat --- */
+
 /* Vizuální stav při načítání */
-.loading-state p {
+.loading-state {
+    display: flex; /* Použijeme flexbox pro centrování */
+    justify-content: center;
+    align-items: center;
+    min-height: 100px; /* Zajištění výšky pro zobrazení spinneru */
     color: #6c757d;
     font-style: italic;
+    font-size: 1.2em;
+}
+
+/* Skryjeme text "Načítám úkoly..." a místo něj zobrazíme spinner */
+.loading-state p {
+    display: none;
+}
+
+/* Spinner animace */
+.loading-state::before {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(33, 150, 243, 0.3); /* Světle modrý okraj */
+    border-top-color: #2196F3; /* Tmavší modrý okraj nahoře */
+    border-radius: 50%;
+    animation: spin 1s linear infinite; /* Aplikace animace */
+    display: block; /* Zobrazíme ho jen když je načítání */
+}
+
+/* Chybový stav */
+.error-state {
+    color: #dc3545; /* Červená barva */
+    font-weight: bold;
+    text-align: center;
+    padding: 15px;
+    border: 1px solid #dc3545;
+    background-color: #f8d7da;
+    border-radius: 5px;
+}
+
+/* Definice animace pro spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
