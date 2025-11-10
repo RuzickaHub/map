@@ -1,106 +1,12 @@
 {
-    "tree": {
-        "id": "root",
-        "label": "Root",
-        "level": 0,
-        "expanded": true,
-        "children": [
-            {
-                "id": "node1",
-                "label": "Node 1",
-                "level": 1,
-                "expanded": true,
-                "children": [
-                    {
-                        "id": "node11",
-                        "label": "Node 1.1",
-                        "level": 2,
-                        "expanded": true,
-                        "children": [
-                            {
-                                "id": "node111",
-                                "label": "Node 1.1.1",
-                                "level": 3,
-                                "children": []
-                            },
-                            {
-                                "id": "node112",
-                                "label": "Node 1.1.2",
-                                "level": 3,
-                                "children": []
-                            }
-                        ]
-                    },
-                    {
-                        "id": "node12",
-                        "label": "Node 1.2",
-                        "level": 2,
-                        "expanded": true,
-                        "children": [
-                            {
-                                "id": "node121",
-                                "label": "Node 1.2.1",
-                                "level": 3,
-                                "children": []
-                            },
-                            {
-                                "id": "node122",
-                                "label": "Node 1.2.2",
-                                "level": 3,
-                                "children": []
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "id": "node2",
-                "label": "Node 2",
-                "level": 1,
-                "expanded": true,
-                "children": [
-                    {
-                        "id": "node21",
-                        "label": "Node 2.1",
-                        "level": 2,
-                        "expanded": true,
-                        "children": [
-                            {
-                                "id": "node211",
-                                "label": "Node 2.1.1",
-                                "level": 3,
-                                "children": []
-                            },
-                            {
-                                "id": "node212",
-                                "label": "Node 2.1.2",
-                                "level": 3,
-                                "children": []
-                            }
-                        ]
-                    },
-                    {
-                        "id": "node22",
-                        "label": "Node 2.2",
-                        "level": 2,
-                        "expanded": true,
-                        "children": [
-                            {
-                                "id": "node221",
-                                "label": "Node 2.2.1",
-                                "level": 3,
-                                "children": []
-                            },
-                            {
-                                "id": "node222",
-                                "label": "Node 2.2.2",
-                                "level": 3,
-                                "children": []
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
+  "id":"MAP_root",
+  "title":"Ukázková mapa",
+  "meta":{"created":"2025-11-10T00:00:00Z","modified":"2025-11-10T00:00:00Z","version":1},
+  "nodes":{
+    "A0A0":{"id":"A0A0","title":"Root","type":"folder","tags":["root"],"content":{"markdown":"","links":[]},"children":["B1C2","B1C3"]},
+    "B1C2":{"id":"B1C2","title":"Složka 1","type":"folder","tags":[],"content":{},"children":["C2D3"]},
+    "B1C3":{"id":"B1C3","title":"Komponenta X","type":"component","tags":["ui"],"content":{},"children":[]},
+    "C2D3":{"id":"C2D3","title":"List A","type":"leaf","tags":[],"content":{},"children":[]}
+  },
+  "root":"A0A0"
 }
