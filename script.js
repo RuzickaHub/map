@@ -1,243 +1,229 @@
-// Tree state management
-const treeState = {};
-const nodeRefs = {};
+// MVP script: d3 tree renderer + simple editor/save
+const RAW_JSON = 'data.json';
+let DATA = null;
+let selectedNodeId = null;
 
-// DOM elements
-let treeContainer;
-let connectionsSvg;
-let treeRoot;
-
-// Create node element from data
-function createNodeElement(nodeData) {
-  const hasChildren = nodeData.children && nodeData.children.length > 0;
-  
-  const button = document.createElement('button');
-  button.className = `node-button level-${nodeData.level}`;
-  button.dataset.id = nodeData.id;
-  
-  if (hasChildren) {
-    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    chevron.setAttribute('class', 'chevron chevron-down');
-    chevron.setAttribute('viewBox', '0 0 24 24');
-    chevron.setAttribute('fill', 'none');
-    chevron.setAttribute('stroke', 'currentColor');
-    chevron.setAttribute('stroke-width', '2');
-    
-    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    polyline.setAttribute('points', '6 9 12 15 18 9');
-    
-    chevron.appendChild(polyline);
-    button.appendChild(chevron);
-  }
-  
-  button.appendChild(document.createTextNode(nodeData.label));
-  
-  return button;
+// helpers
+function generateId() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const seg = ()=> letters[Math.floor(Math.random()*letters.length)] + Math.floor(Math.random()*10);
+  return seg()+seg(); // e.g. A0A0
+}
+function downloadObjectAsJson(exportObj, exportName){
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+  const a = document.createElement('a');
+  a.setAttribute("href", dataStr);
+  a.setAttribute("download", exportName);
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
-// Build tree structure recursively
-function buildTree(nodeData, parentElement) {
-  // Initialize state
-  treeState[nodeData.id] = nodeData.expanded !== false;
-  
-  const treeNode = document.createElement('div');
-  treeNode.className = 'tree-node';
-  
-  const button = createNodeElement(nodeData);
-  nodeRefs[nodeData.id] = button;
-  
-  if (nodeData.children && nodeData.children.length > 0) {
-    const branch = document.createElement('div');
-    branch.className = 'branch';
-    
-    branch.appendChild(button);
-    
-    const childrenContainer = document.createElement('div');
-    childrenContainer.className = 'node-children';
-    childrenContainer.style.display = treeState[nodeData.id] ? 'flex' : 'none';
-    
-    nodeData.children.forEach(child => {
-      buildTree(child, childrenContainer);
+// load JSON (from repo raw when hosted, or relative when local)
+async function loadDataFromUrl(url = RAW_JSON){
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('Chyba při načítání data.json');
+    const j = await res.json();
+    DATA = j;
+    render();
+  }catch(e){
+    console.error(e);
+    alert('Nepodařilo se načíst data.json (zkontroluj CORS nebo cestu)');
+  }
+}
+
+// build hierarchical structure for d3
+function buildHierarchy(data){
+  const nodes = data.nodes || {};
+  const rootId = data.root;
+  const map = new Map();
+  Object.values(nodes).forEach(n => map.set(n.id, {...n}));
+  // ensure children props exist
+  map.forEach(v => v.children = (v.children || []).map(cid => map.get(cid)).filter(Boolean));
+  return map.get(rootId);
+}
+
+/* D3 rendering */
+const svg = d3.select('#svgCanvas');
+const width = document.querySelector('.canvas').clientWidth;
+const height = document.querySelector('.canvas').clientHeight;
+const g = svg.append('g');
+
+let zoom = d3.zoom().scaleExtent([0.2, 2]).on('zoom', (event)=> g.attr('transform', event.transform));
+svg.call(zoom);
+
+// render main
+function render(){
+  if(!DATA) return;
+  g.selectAll('*').remove();
+  const root = d3.hierarchy(buildHierarchy(DATA));
+  const tree = d3.tree().nodeSize([140, 120]);
+  tree(root);
+
+  // links
+  g.selectAll('.link')
+    .data(root.links())
+    .join('path')
+    .attr('class','link')
+    .attr('d', d => {
+      return `M${d.source.x},${d.source.y} C${d.source.x},${(d.source.y + d.target.y)/2} ${d.target.x},${(d.source.y + d.target.y)/2} ${d.target.x},${d.target.y}`;
+    })
+    .attr('fill','none')
+    .attr('stroke','rgba(255,255,255,0.06)');
+
+  // nodes
+  const node = g.selectAll('.node')
+    .data(root.descendants())
+    .join('g')
+    .attr('class','node')
+    .attr('transform', d => `translate(${d.x},${d.y})`)
+    .on('click', (event,d) => {
+      event.stopPropagation();
+      selectNode(d.data.id);
     });
-    
-    branch.appendChild(childrenContainer);
-    treeNode.appendChild(branch);
-  } else {
-    treeNode.appendChild(button);
-  }
-  
-  parentElement.appendChild(treeNode);
-}
 
-// Toggle node expansion
-function toggleNode(nodeId) {
-  const node = nodeRefs[nodeId];
-  if (!node) return;
-  
-  // Toggle state
-  treeState[nodeId] = !treeState[nodeId];
-  
-  // Update UI
-  updateNodeUI(node, nodeId);
-  
-  // Update connection lines
-  updateConnections();
-}
+  node.append('rect')
+    .attr('x', -60).attr('y', -18).attr('width', 120).attr('height', 36)
+    .attr('rx',8).attr('ry',8)
+    .attr('fill', d => d.children && d.children.length ? '#062437' : '#041826')
+    .attr('stroke','rgba(255,255,255,0.03)');
 
-// Update node UI based on state
-function updateNodeUI(node, nodeId) {
-  const chevron = node.querySelector('.chevron');
-  const childrenContainer = node.parentElement.querySelector('.node-children');
-  
-  if (treeState[nodeId]) {
-    // Expanded state
-    if (chevron) {
-      chevron.classList.remove('chevron-right');
-      chevron.classList.add('chevron-down');
-      const polyline = chevron.querySelector('polyline');
-      if (polyline) {
-        polyline.setAttribute('points', '6 9 12 15 18 9');
-      }
+  node.append('text')
+    .attr('class','label')
+    .attr('text-anchor','middle')
+    .attr('dy','0.2em')
+    .text(d => d.data.title || d.data.id);
+
+  node.append('text')
+    .attr('class','id')
+    .attr('text-anchor','middle')
+    .attr('dy','1.6em')
+    .text(d => d.data.id);
+
+  // collapse on double click
+  node.on('dblclick', (event,d)=> {
+    event.stopPropagation();
+    if(d.children){
+      d._children = d.children;
+      d.children = null;
+    } else if(d._children){
+      d.children = d._children; d._children = null;
     }
-    if (childrenContainer) {
-      childrenContainer.style.display = 'flex';
-    }
-  } else {
-    // Collapsed state
-    if (chevron) {
-      chevron.classList.remove('chevron-down');
-      chevron.classList.add('chevron-right');
-      const polyline = chevron.querySelector('polyline');
-      if (polyline) {
-        polyline.setAttribute('points', '9 18 15 12 9 6');
-      }
-    }
-    if (childrenContainer) {
-      childrenContainer.style.display = 'none';
-    }
-  }
-}
-
-// Get node position for connection lines
-function getNodePosition(node) {
-  if (!node) return null;
-  
-  const rect = node.getBoundingClientRect();
-  const containerRect = treeContainer.getBoundingClientRect();
-  
-  return {
-    x: rect.left - containerRect.left + rect.width / 2,
-    y: rect.top - containerRect.top + rect.height / 2,
-    right: rect.right - containerRect.left,
-    left: rect.left - containerRect.left,
-    width: rect.width,
-    height: rect.height
-  };
-}
-
-// Draw connection line between two nodes
-function drawConnection(startId, endId, isVisible) {
-  const startPos = getNodePosition(nodeRefs[startId]);
-  const endPos = getNodePosition(nodeRefs[endId]);
-  
-  if (!startPos || !endPos || !isVisible) {
-    return '';
-  }
-  
-  const x1 = startPos.right;
-  const y1 = startPos.y;
-  const x2 = endPos.left;
-  const y2 = endPos.y;
-  const midX = x1 + (x2 - x1) / 2;
-  
-  return `
-    <path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}" 
-          class="connection" 
-          opacity="${isVisible ? 1 : 0}" />
-  `;
-}
-
-// Get all parent-child relationships from tree data
-function getConnections(nodeData, parentId = null, parentExpanded = true) {
-  const connections = [];
-  
-  if (parentId) {
-    connections.push({
-      parent: parentId,
-      child: nodeData.id,
-      visible: parentExpanded
-    });
-  }
-  
-  if (nodeData.children && nodeData.children.length > 0) {
-    const isExpanded = treeState[nodeData.id];
-    nodeData.children.forEach(child => {
-      connections.push(...getConnections(child, nodeData.id, parentExpanded && isExpanded));
-    });
-  }
-  
-  return connections;
-}
-
-// Update all connection lines
-function updateConnections() {
-  const treeData = window.loadedTreeData;
-  if (!treeData) return;
-  
-  const connections = getConnections(treeData.tree);
-  const svg = connections.map(conn => 
-    drawConnection(conn.parent, conn.child, conn.visible)
-  ).join('');
-  
-  connectionsSvg.innerHTML = svg;
-}
-
-// Set up event listeners for nodes
-function setupEventListeners() {
-  Object.keys(nodeRefs).forEach(nodeId => {
-    const node = nodeRefs[nodeId];
-    if (node) {
-      const hasChildren = node.querySelector('.chevron') !== null;
-      if (hasChildren) {
-        node.addEventListener('click', () => toggleNode(nodeId));
-      }
-      updateNodeUI(node, nodeId);
-    }
+    // update underlying DATA children arrays
+    syncDataChildren(DATA, root);
+    render();
   });
 }
 
-// Load and initialize tree from JSON
-async function loadTree() {
-  try {
-    const response = await fetch('data.json');
-    const data = await response.json();
-    
-    // Store data globally for connection updates
-    window.loadedTreeData = data;
-    
-    // Build tree structure
-    buildTree(data.tree, treeRoot);
-    
-    // Set up interactions
-    setupEventListeners();
-    
-    // Draw initial connections
-    updateConnections();
-    
-    // Update on window resize
-    window.addEventListener('resize', updateConnections);
-    
-  } catch (error) {
-    console.error('Chyba při načítání stromu:', error);
-    treeRoot.innerHTML = '<p style="color: #ef4444;">Nepodařilo se načíst data stromu.</p>';
+// sync DATA.nodes children arrays from current d3 hierarchy
+function syncDataChildren(data, root){
+  // traverse root and set children arrays
+  function walk(n){
+    const arr = (n.children || []).map(c=>c.data.id);
+    if(data.nodes[n.data.id]) data.nodes[n.data.id].children = arr;
+    (n.children || []).forEach(walk);
   }
+  walk(root);
+  data.meta = data.meta || {};
+  data.meta.modified = new Date().toISOString();
 }
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
-  treeContainer = document.querySelector('.tree-container');
-  connectionsSvg = document.getElementById('connections');
-  treeRoot = document.getElementById('tree-root');
-  
-  loadTree();
+// selection & editor
+function selectNode(id){
+  selectedNodeId = id;
+  const node = DATA.nodes[id];
+  if(!node) return;
+  document.getElementById('nodeId').textContent = id;
+  document.getElementById('nodeTitle').value = node.title || '';
+  document.getElementById('nodeTags').value = (node.tags || []).join(',');
+  document.getElementById('nodeMd').value = (node.content && node.content.markdown) || '';
+  document.getElementById('mdPreview').innerHTML = '';
+}
+
+// editor actions
+document.getElementById('btnAddChild').addEventListener('click', ()=>{
+  if(!selectedNodeId) return alert('Vyber uzel');
+  const newId = generateId();
+  DATA.nodes[newId] = { id:newId, title:'Nový uzel', type:'leaf', tags:[], content:{}, children:[] };
+  DATA.nodes[selectedNodeId].children = DATA.nodes[selectedNodeId].children || [];
+  DATA.nodes[selectedNodeId].children.push(newId);
+  render();
+  selectNode(newId);
+});
+document.getElementById('btnDeleteNode').addEventListener('click', ()=>{
+  if(!selectedNodeId) return;
+  if(selectedNodeId === DATA.root) return alert('Nelze smazat root');
+  // remove from parent's children
+  for(const k in DATA.nodes){
+    const idx = (DATA.nodes[k].children||[]).indexOf(selectedNodeId);
+    if(idx>=0){ DATA.nodes[k].children.splice(idx,1); break; }
+  }
+  // recursively delete subtree
+  function del(id){
+    (DATA.nodes[id].children||[]).forEach(del);
+    delete DATA.nodes[id];
+  }
+  del(selectedNodeId);
+  selectedNodeId = null;
+  render();
+});
+
+document.getElementById('btnGenerateId').addEventListener('click', ()=>{
+  const id = generateId();
+  alert('Nové ID: ' + id + ' — můžeš ho použít v exportovaném JSONu.');
+});
+
+document.getElementById('nodeTitle').addEventListener('input', (e)=>{
+  if(!selectedNodeId) return;
+  DATA.nodes[selectedNodeId].title = e.target.value;
+  render();
+});
+document.getElementById('nodeTags').addEventListener('input', (e)=>{
+  if(!selectedNodeId) return;
+  DATA.nodes[selectedNodeId].tags = e.target.value.split(',').map(s=>s.trim()).filter(Boolean);
+});
+document.getElementById('btnPreviewMd').addEventListener('click', ()=>{
+  const md = document.getElementById('nodeMd').value || '';
+  if(selectedNodeId){ DATA.nodes[selectedNodeId].content = DATA.nodes[selectedNodeId].content || {}; DATA.nodes[selectedNodeId].content.markdown = md; }
+  document.getElementById('mdPreview').innerHTML = marked.parse(md);
+});
+
+// file actions
+document.getElementById('btnReload').addEventListener('click', ()=> loadDataFromUrl(RAW_JSON));
+document.getElementById('btnDownloadJson').addEventListener('click', ()=> {
+  if(!DATA) return alert('Žádná data');
+  downloadObjectAsJson(DATA, 'map-export.json');
+});
+document.getElementById('btnExportPng').addEventListener('click', ()=> {
+  saveSvgAsPng(document.getElementById('svgCanvas'), 'map.png', {scale:2});
+});
+document.getElementById('btnUpload').addEventListener('click', ()=> document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', (ev)=>{
+  const f = ev.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=> {
+    try{
+      const obj = JSON.parse(r.result);
+      DATA = obj;
+      render();
+    }catch(e){ alert('Chybný JSON'); }
+  };
+  r.readAsText(f);
+});
+
+// click outside to deselect
+svg.on('click', ()=> {
+  selectedNodeId = null;
+  document.getElementById('nodeId').textContent = '—';
+  document.getElementById('nodeTitle').value = '';
+  document.getElementById('nodeTags').value = '';
+  document.getElementById('nodeMd').value = '';
+  document.getElementById('mdPreview').innerHTML = '';
+});
+
+// init
+loadDataFromUrl();
+window.addEventListener('resize', ()=> {
+  // re-render to recalc sizes if needed
+  render();
 });
