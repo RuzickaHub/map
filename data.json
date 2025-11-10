@@ -1,0 +1,9 @@
+{
+  "title": "Seznam úkolů načtený z externího JSON",
+  "tasks": [
+    {"id": 1, "description": "Nastudovat asynchronní JavaScript (fetch/await)"},
+    {"id": 2, "description": "Implementovat externí CSS do projektu"},
+    {"id": 3, "description": "Otestovat načítání dat v prohlížeči"},
+    {"id": 4, "description": "Připravit se na další kroky v projektu"}
+  ]
+}
