@@ -3,18 +3,657 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Načítání externích zdrojů</title>
-    
-    <link rel="stylesheet" href="style.css">
+    <title>Interactive Tree Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #f4f4f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: #f4f4f5;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .tree-container {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 80px;
+            padding: 40px 20px;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .node-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            color: #f4f4f5;
+            cursor: pointer;
+            z-index: 10;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .node-button:hover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .node-button:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .node-button.level-0 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .node-button.level-1 {
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .node-button.level-2 {
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .node-children {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-left: 20px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+        }
+
+        .node-children.collapsed {
+            display: none;
+            opacity: 0;
+        }
+
+        .branch {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .chevron {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s;
+            color: #a1a1aa;
+            flex-shrink: 0;
+        }
+
+        .chevron.rotated {
+            transform: rotate(-90deg);
+        }
+
+        .node-button:hover .chevron {
+            color: #667eea;
+        }
+
+        .connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+            z-index: 0;
+        }
+
+        .connection {
+            stroke: rgba(102, 126, 234, 0.3);
+            stroke-width: 2;
+            fill: none;
+            transition: opacity 0.4s, stroke 0.3s;
+        }
+
+        .connection.hidden {
+            opacity: 0;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            padding: 12px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(102, 126, 234, 1);
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            color: #a1a1aa;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            padding: 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            color: #fca5a5;
+            text-align: center;
+        }
+
+        .node-count {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            padding: 12px 20px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            backdrop-filter: blur(10px);
+        }
+
+        .node-count span {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .tree-container {
+                padding: 20px 10px;
+                margin-top: 100px;
+            }
+
+            .node-button {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+
+            .controls {
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .control-btn {
+                width: 45px;
+                height: 45px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-  <div class="tree-container">
-    <svg class="connections" id="connections"></svg>
-    <div id="tree-root"></div>
-  </div>
-  
-  <script src="script.js" defer></script>
-</body>
+    <div class="header">
+        <h1>🌳 Interactive Tree Viewer</h1>
+        <div class="header-actions">
+            <button class="btn" onclick="expandAll()">📖 Rozbalit vše</button>
+            <button class="btn" onclick="collapseAll()">📕 Sbalit vše</button>
+            <button class="btn" onclick="resetView()">🔄 Reset</button>
+        </div>
+    </div>
 
+    <div class="tree-container">
+        <svg class="connections" id="connections"></svg>
+        <div id="tree-root"></div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" onclick="zoomIn()" title="Přiblížit">+</button>
+        <button class="control-btn" onclick="zoomOut()" title="Oddálit">−</button>
+    </div>
+
+    <div class="node-count" id="nodeCount">
+        Uzlů: <span>0</span>
+    </div>
+
+    <script>
+        // Tree state management
+        const treeState = {};
+        const nodeRefs = {};
+        let currentZoom = 1;
+        let treeData = null;
+
+        // DOM elements
+        let treeContainer;
+        let connectionsSvg;
+        let treeRoot;
+
+        // Sample data
+        const sampleData = {
+            "tree": {
+                "id": "root",
+                "label": "Root Node",
+                "level": 0,
+                "expanded": true,
+                "children": [
+                    {
+                        "id": "node1",
+                        "label": "Node 1",
+                        "level": 1,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node11",
+                                "label": "Node 1.1",
+                                "level": 2,
+                                "children": []
+                            },
+                            {
+                                "id": "node12",
+                                "label": "Node 1.2",
+                                "level": 2,
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "node2",
+                        "label": "Node 2",
+                        "level": 1,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node21",
+                                "label": "Node 2.1",
+                                "level": 2,
+                                "children": []
+                            },
+                            {
+                                "id": "node22",
+                                "label": "Node 2.2",
+                                "level": 2,
+                                "children": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Create node element from data
+        function createNodeElement(nodeData) {
+            const hasChildren = nodeData.children && nodeData.children.length > 0;
+            
+            const button = document.createElement('button');
+            button.className = `node-button level-${nodeData.level}`;
+            button.dataset.id = nodeData.id;
+            
+            if (hasChildren) {
+                const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                chevron.setAttribute('class', 'chevron');
+                chevron.setAttribute('viewBox', '0 0 24 24');
+                chevron.setAttribute('fill', 'none');
+                chevron.setAttribute('stroke', 'currentColor');
+                chevron.setAttribute('stroke-width', '2');
+                
+                const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                polyline.setAttribute('points', '6 9 12 15 18 9');
+                
+                chevron.appendChild(polyline);
+                button.appendChild(chevron);
+            }
+            
+            button.appendChild(document.createTextNode(nodeData.label));
+            
+            return button;
+        }
+
+        // Build tree structure recursively
+        function buildTree(nodeData, parentElement) {
+            treeState[nodeData.id] = nodeData.expanded !== false;
+            
+            const treeNode = document.createElement('div');
+            treeNode.className = 'tree-node';
+            
+            const button = createNodeElement(nodeData);
+            nodeRefs[nodeData.id] = button;
+            
+            if (nodeData.children && nodeData.children.length > 0) {
+                const branch = document.createElement('div');
+                branch.className = 'branch';
+                
+                branch.appendChild(button);
+                
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'node-children';
+                childrenContainer.dataset.parentId = nodeData.id;
+                
+                nodeData.children.forEach(child => {
+                    buildTree(child, childrenContainer);
+                });
+                
+                branch.appendChild(childrenContainer);
+                treeNode.appendChild(branch);
+            } else {
+                treeNode.appendChild(button);
+            }
+            
+            parentElement.appendChild(treeNode);
+        }
+
+        // Toggle node expansion
+        function toggleNode(nodeId) {
+            const node = nodeRefs[nodeId];
+            if (!node) return;
+            
+            treeState[nodeId] = !treeState[nodeId];
+            updateNodeUI(node, nodeId);
+            setTimeout(updateConnections, 50);
+        }
+
+        // Update node UI based on state
+        function updateNodeUI(node, nodeId) {
+            const chevron = node.querySelector('.chevron');
+            const childrenContainer = node.parentElement.querySelector('.node-children');
+            
+            if (treeState[nodeId]) {
+                if (chevron) {
+                    chevron.classList.remove('rotated');
+                }
+                if (childrenContainer) {
+                    childrenContainer.classList.remove('collapsed');
+                }
+            } else {
+                if (chevron) {
+                    chevron.classList.add('rotated');
+                }
+                if (childrenContainer) {
+                    childrenContainer.classList.add('collapsed');
+                }
+            }
+        }
+
+        // Get node position for connection lines
+        function getNodePosition(node) {
+            if (!node) return null;
+            
+            const rect = node.getBoundingClientRect();
+            const containerRect = treeContainer.getBoundingClientRect();
+            
+            return {
+                x: rect.left - containerRect.left + rect.width / 2,
+                y: rect.top - containerRect.top + rect.height / 2,
+                right: rect.right - containerRect.left,
+                left: rect.left - containerRect.left
+            };
+        }
+
+        // Draw connection line between two nodes
+        function drawConnection(startId, endId, isVisible) {
+            const startPos = getNodePosition(nodeRefs[startId]);
+            const endPos = getNodePosition(nodeRefs[endId]);
+            
+            if (!startPos || !endPos) return '';
+            
+            const x1 = startPos.right;
+            const y1 = startPos.y;
+            const x2 = endPos.left;
+            const y2 = endPos.y;
+            const midX = x1 + (x2 - x1) / 2;
+            
+            return `<path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}" 
+                    class="connection ${isVisible ? '' : 'hidden'}" />`;
+        }
+
+        // Get all parent-child relationships
+        function getConnections(nodeData, parentId = null, parentExpanded = true) {
+            const connections = [];
+            
+            if (parentId) {
+                connections.push({
+                    parent: parentId,
+                    child: nodeData.id,
+                    visible: parentExpanded
+                });
+            }
+            
+            if (nodeData.children && nodeData.children.length > 0) {
+                const isExpanded = treeState[nodeData.id];
+                nodeData.children.forEach(child => {
+                    connections.push(...getConnections(child, nodeData.id, parentExpanded && isExpanded));
+                });
+            }
+            
+            return connections;
+        }
+
+        // Update all connection lines
+        function updateConnections() {
+            if (!treeData) return;
+            
+            const connections = getConnections(treeData.tree);
+            const svg = connections.map(conn => 
+                drawConnection(conn.parent, conn.child, conn.visible)
+            ).join('');
+            
+            connectionsSvg.innerHTML = svg;
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            Object.keys(nodeRefs).forEach(nodeId => {
+                const node = nodeRefs[nodeId];
+                if (node && node.querySelector('.chevron')) {
+                    node.addEventListener('click', () => toggleNode(nodeId));
+                }
+                updateNodeUI(node, nodeId);
+            });
+        }
+
+        // Count nodes
+        function countNodes(nodeData) {
+            let count = 1;
+            if (nodeData.children) {
+                nodeData.children.forEach(child => {
+                    count += countNodes(child);
+                });
+            }
+            return count;
+        }
+
+        // Update node count display
+        function updateNodeCount() {
+            if (treeData) {
+                const count = countNodes(treeData.tree);
+                document.querySelector('#nodeCount span').textContent = count;
+            }
+        }
+
+        // Expand all nodes
+        function expandAll() {
+            Object.keys(treeState).forEach(nodeId => {
+                treeState[nodeId] = true;
+                const node = nodeRefs[nodeId];
+                if (node) updateNodeUI(node, nodeId);
+            });
+            setTimeout(updateConnections, 50);
+        }
+
+        // Collapse all nodes
+        function collapseAll() {
+            Object.keys(treeState).forEach(nodeId => {
+                if (nodeId !== 'root') {
+                    treeState[nodeId] = false;
+                    const node = nodeRefs[nodeId];
+                    if (node) updateNodeUI(node, nodeId);
+                }
+            });
+            setTimeout(updateConnections, 50);
+        }
+
+        // Reset view
+        function resetView() {
+            currentZoom = 1;
+            treeRoot.style.transform = `scale(${currentZoom})`;
+            collapseAll();
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom + 0.1, 2);
+            treeRoot.style.transform = `scale(${currentZoom})`;
+            setTimeout(updateConnections, 100);
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom - 0.1, 0.5);
+            treeRoot.style.transform = `scale(${currentZoom})`;
+            setTimeout(updateConnections, 100);
+        }
+
+        // Load tree data
+        async function loadTree() {
+            treeRoot.innerHTML = '<div class="loading"><div class="spinner"></div><p>Načítání stromu...</p></div>';
+            
+            try {
+                const response = await fetch('data.json');
+                treeData = await response.json();
+            } catch (error) {
+                console.log('Používám ukázková data');
+                treeData = sampleData;
+            }
+            
+            treeRoot.innerHTML = '';
+            buildTree(treeData.tree, treeRoot);
+            setupEventListeners();
+            updateConnections();
+            updateNodeCount();
+            
+            window.addEventListener('resize', () => {
+                setTimeout(updateConnections, 100);
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            treeContainer = document.querySelector('.tree-container');
+            connectionsSvg = document.getElementById('connections');
+            treeRoot = document.getElementById('tree-root');
+            
+            loadTree();
+        });
+    </script>
+</body>
 </html>
