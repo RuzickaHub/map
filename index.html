@@ -11,48 +11,10 @@
 <body>
   <div class="tree-container">
     <svg class="connections" id="connections"></svg>
-
-    <div class="tree-node">
-      <button class="node-button level-0" data-id="root">
-        <svg class="chevron chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-        Root
-      </button>
-
-      <div class="node-children">
-        <div class="branch">
-          <button class="node-button level-1" data-id="node1">
-            <svg class="chevron chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-            Node 1
-          </button>
-
-          <div class="node-children">
-            <button class="node-button level-2" data-id="node11">Node 1.1</button>
-            <button class="node-button level-2" data-id="node12">Node 1.2</button>
-          </div>
-        </div>
-
-        <div class="branch">
-          <button class="node-button level-1" data-id="node2">
-            <svg class="chevron chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-            Node 2
-          </button>
-
-          <div class="node-children">
-            <button class="node-button level-2" data-id="node21">Node 2.1</button>
-            <button class="node-button level-2" data-id="node22">Node 2.2</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="tree-root"></div>
   </div>
+  
   <script src="script.js" defer></script>
-
 </body>
 
 </html>

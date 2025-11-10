@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Tree Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #f4f4f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f4f4f5;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            margin-bottom: 20px;
+            color: #a78bfa;
+        }
+
+        .tree-editor {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tree-editor::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .tree-editor::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .tree-editor::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .tree-item {
+            margin-bottom: 10px;
+        }
+
+        .tree-item-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .tree-item-header:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .tree-item-indent {
+            display: inline-block;
+        }
+
+        .tree-item-toggle {
+            background: none;
+            border: none;
+            color: #a1a1aa;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .tree-item-label {
+            flex: 1;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #f4f4f5;
+            border-radius: 4px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .tree-item-label:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #667eea;
+        }
+
+        .tree-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #a1a1aa;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f4f4f5;
+        }
+
+        .icon-btn.delete:hover {
+            color: #ef4444;
+        }
+
+        .tree-children {
+            margin-left: 30px;
+            margin-top: 5px;
+        }
+
+        .json-preview {
+            background: #18181b;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 600px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .json-preview::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .json-preview::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .json-preview::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: #10b981;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .add-node-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+        }
+
+        .add-node-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: #a78bfa;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            color: #a1a1aa;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #f4f4f5;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-group select option {
+            background: #18181b;
+            color: #f4f4f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Tree Admin Panel</h1>
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="loadTreeData()">🔄 Načíst data</button>
+                <button class="btn btn-primary" onclick="saveTreeData()">💾 Uložit změny</button>
+                <button class="btn btn-secondary" onclick="window.open('index.html', '_blank')">👁️ Náhled</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2 class="panel-title">Editace stromu</h2>
+                <div class="tree-editor" id="treeEditor"></div>
+                
+                <div class="add-node-section">
+                    <h3>➕ Přidat nový uzel</h3>
+                    <div class="form-group">
+                        <label>Název uzlu</label>
+                        <input type="text" id="newNodeLabel" placeholder="např. Node 3">
+                    </div>
+                    <div class="form-group">
+                        <label>Rodičovský uzel</label>
+                        <select id="parentSelect"></select>
+                    </div>
+                    <button class="btn btn-primary" onclick="addNewNode()" style="width: 100%; margin-top: 10px;">
+                        Přidat uzel
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">JSON náhled</h2>
+                <div class="json-preview">
+                    <pre id="jsonPreview"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let treeData = null;
+        let nodeIdCounter = 100;
+
+        // Load tree data from JSON file
+        async function loadTreeData() {
+            try {
+                const response = await fetch('data.json');
+                treeData = await response.json();
+                renderTree();
+                updateJsonPreview();
+                updateParentSelect();
+                showNotification('Data úspěšně načtena!');
+            } catch (error) {
+                console.error('Chyba při načítání:', error);
+                alert('Nepodařilo se načíst data.json');
+            }
+        }
+
+        // Render tree editor
+        function renderTree() {
+            const editor = document.getElementById('treeEditor');
+            editor.innerHTML = '';
+            if (treeData && treeData.tree) {
+                renderNode(treeData.tree, editor, 0);
+            }
+        }
+
+        // Render single node recursively
+        function renderNode(node, container, level) {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.dataset.nodeId = node.id;
+
+            const header = document.createElement('div');
+            header.className = 'tree-item-header';
+
+            // Indent
+            const indent = document.createElement('span');
+            indent.className = 'tree-item-indent';
+            indent.style.width = `${level * 20}px`;
+            header.appendChild(indent);
+
+            // Toggle button (if has children)
+            if (node.children && node.children.length > 0) {
+                const toggle = document.createElement('button');
+                toggle.className = 'tree-item-toggle';
+                toggle.innerHTML = '▼';
+                toggle.onclick = () => toggleNodeChildren(node.id);
+                header.appendChild(toggle);
+            } else {
+                const spacer = document.createElement('span');
+                spacer.style.width = '24px';
+                spacer.style.display = 'inline-block';
+                header.appendChild(spacer);
+            }
+
+            // Label input
+            const label = document.createElement('input');
+            label.type = 'text';
+            label.className = 'tree-item-label';
+            label.value = node.label;
+            label.onchange = (e) => updateNodeLabel(node.id, e.target.value);
+            header.appendChild(label);
+
+            // Actions
+            const actions = document.createElement('div');
+            actions.className = 'tree-item-actions';
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'icon-btn';
+            addBtn.innerHTML = '➕';
+            addBtn.title = 'Přidat potomka';
+            addBtn.onclick = () => addChildNode(node.id);
+            actions.appendChild(addBtn);
+
+            if (node.id !== 'root') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'icon-btn delete';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = 'Smazat';
+                deleteBtn.onclick = () => deleteNode(node.id);
+                actions.appendChild(deleteBtn);
+            }
+
+            header.appendChild(actions);
+            item.appendChild(header);
+
+            // Children
+            if (node.children && node.children.length > 0) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'tree-children';
+                childrenContainer.id = `children-${node.id}`;
+                node.children.forEach(child => renderNode(child, childrenContainer, level + 1));
+                item.appendChild(childrenContainer);
+            }
+
+            container.appendChild(item);
+        }
+
+        // Toggle node children visibility
+        function toggleNodeChildren(nodeId) {
+            const children = document.getElementById(`children-${nodeId}`);
+            if (children) {
+                children.style.display = children.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Find node by ID in tree
+        function findNode(tree, nodeId) {
+            if (tree.id === nodeId) return tree;
+            if (tree.children) {
+                for (let child of tree.children) {
+                    const found = findNode(child, nodeId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // Find parent of node
+        function findParentNode(tree, nodeId) {
+            if (tree.children) {
+                for (let child of tree.children) {
+                    if (child.id === nodeId) return tree;
+                    const found = findParentNode(child, nodeId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // Update node label
+        function updateNodeLabel(nodeId, newLabel) {
+            const node = findNode(treeData.tree, nodeId);
+            if (node) {
+                node.label = newLabel;
+                updateJsonPreview();
+            }
+        }
+
+        // Add child node
+        function addChildNode(parentId) {
+            const parent = findNode(treeData.tree, parentId);
+            if (parent) {
+                if (!parent.children) parent.children = [];
+                const newNode = {
+                    id: `node${nodeIdCounter++}`,
+                    label: `Nový uzel`,
+                    level: parent.level + 1,
+                    children: []
+                };
+                parent.children.push(newNode);
+                renderTree();
+                updateJsonPreview();
+                updateParentSelect();
+            }
+        }
+
+        // Delete node
+        function deleteNode(nodeId) {
+            if (!confirm('Opravdu chcete smazat tento uzel a všechny jeho potomky?')) return;
+            
+            const parent = findParentNode(treeData.tree, nodeId);
+            if (parent && parent.children) {
+                parent.children = parent.children.filter(child => child.id !== nodeId);
+                renderTree();
+                updateJsonPreview();
+                updateParentSelect();
+                showNotification('Uzel smazán');
+            }
+        }
+
+        // Add new node from form
+        function addNewNode() {
+            const label = document.getElementById('newNodeLabel').value.trim();
+            const parentId = document.getElementById('parentSelect').value;
+            
+            if (!label) {
+                alert('Zadejte název uzlu');
+                return;
+            }
+
+            const parent = findNode(treeData.tree, parentId);
+            if (parent) {
+                if (!parent.children) parent.children = [];
+                const newNode = {
+                    id: `node${nodeIdCounter++}`,
+                    label: label,
+                    level: parent.level + 1,
+                    children: []
+                };
+                parent.children.push(newNode);
+                document.getElementById('newNodeLabel').value = '';
+                renderTree();
+                updateJsonPreview();
+                updateParentSelect();
+                showNotification('Uzel přidán!');
+            }
+        }
+
+        // Update parent select options
+        function updateParentSelect() {
+            const select = document.getElementById('parentSelect');
+            select.innerHTML = '';
+            
+            function addOptions(node, prefix = '') {
+                const option = document.createElement('option');
+                option.value = node.id;
+                option.textContent = prefix + node.label;
+                select.appendChild(option);
+                
+                if (node.children) {
+                    node.children.forEach(child => addOptions(child, prefix + '  '));
+                }
+            }
+            
+            if (treeData && treeData.tree) {
+                addOptions(treeData.tree);
+            }
+        }
+
+        // Update JSON preview
+        function updateJsonPreview() {
+            const preview = document.getElementById('jsonPreview');
+            preview.textContent = JSON.stringify(treeData, null, 2);
+        }
+
+        // Save tree data
+        function saveTreeData() {
+            const dataStr = JSON.stringify(treeData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Data uložena! Stáhněte soubor a nahraďte původní data.json');
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadTreeData);
+    </script>
+</body>
+</html>
