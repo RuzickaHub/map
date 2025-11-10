@@ -11,16 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadAndDisplayTasks() {
         try {
             // 1. Nastavíme kontejner na stav načítání
-            // CSS se postará o zobrazení spinneru díky třídě .loading-state
             tasksContainer.classList.add('loading-state');
-            // Zde odstraníme původní text, pokud by tam byl a nebyl skryt CSS
-            tasksContainer.innerHTML = ''; 
 
             // 2. Požadavek na data pomocí fetch API
             const response = await fetch(jsonFilePath);
 
             // 3. Kontrola status kódu (např. 200 OK)
             if (!response.ok) {
+                // Vyhodí chybu, pokud je status 404, 500, apod.
                 throw new Error(`Chyba sítě: Nelze načíst data. Status: ${response.status}`);
             }
 
@@ -31,8 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
             displayTasks(data);
 
         } catch (error) {
+            // Zobrazí chybu v konzoli a v kontejneru pro uživatele
             console.error("Načítání dat selhalo:", error);
-            tasksContainer.innerHTML = `<p class="error-state">Chyba při načítání dat: ${error.message}</p>`;
+            tasksContainer.innerHTML = `<p class="error-state" style="color: red;">Chyba při načítání dat: ${error.message}</p>`;
 
         } finally {
             // Bez ohledu na výsledek odstraníme stav načítání
@@ -52,12 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let htmlContent = `<h3>${data.title}</h3>`;
         
+        // Vytvoření listu z úkolů
         data.tasks.forEach(task => {
             htmlContent += `<div class="task-item">
                                 <strong>ID ${task.id}:</strong> ${task.description}
                             </div>`;
         });
 
+        // Vložení finálního HTML do kontejneru
         tasksContainer.innerHTML = htmlContent;
     }
 
