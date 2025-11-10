@@ -1,50 +1,106 @@
 {
-  "tree": {
-    "id": "root",
-    "label": "Root",
-    "level": 0,
-    "expanded": true,
-    "children": [
-      {
-        "id": "node1",
-        "label": "Node 1",
-        "level": 1,
+    "tree": {
+        "id": "root",
+        "label": "Root",
+        "level": 0,
         "expanded": true,
         "children": [
-          {
-            "id": "node11",
-            "label": "Node 1.1",
-            "level": 2,
-            "children": []
-          },
-          {
-            "id": "node12",
-            "label": "Node 1.2",
-            "level": 2,
-            "children": []
-          }
+            {
+                "id": "node1",
+                "label": "Node 1",
+                "level": 1,
+                "expanded": true,
+                "children": [
+                    {
+                        "id": "node11",
+                        "label": "Node 1.1",
+                        "level": 2,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node111",
+                                "label": "Node 1.1.1",
+                                "level": 3,
+                                "children": []
+                            },
+                            {
+                                "id": "node112",
+                                "label": "Node 1.1.2",
+                                "level": 3,
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "node12",
+                        "label": "Node 1.2",
+                        "level": 2,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node121",
+                                "label": "Node 1.2.1",
+                                "level": 3,
+                                "children": []
+                            },
+                            {
+                                "id": "node122",
+                                "label": "Node 1.2.2",
+                                "level": 3,
+                                "children": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "node2",
+                "label": "Node 2",
+                "level": 1,
+                "expanded": true,
+                "children": [
+                    {
+                        "id": "node21",
+                        "label": "Node 2.1",
+                        "level": 2,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node211",
+                                "label": "Node 2.1.1",
+                                "level": 3,
+                                "children": []
+                            },
+                            {
+                                "id": "node212",
+                                "label": "Node 2.1.2",
+                                "level": 3,
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "node22",
+                        "label": "Node 2.2",
+                        "level": 2,
+                        "expanded": true,
+                        "children": [
+                            {
+                                "id": "node221",
+                                "label": "Node 2.2.1",
+                                "level": 3,
+                                "children": []
+                            },
+                            {
+                                "id": "node222",
+                                "label": "Node 2.2.2",
+                                "level": 3,
+                                "children": []
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
-      },
-      {
-        "id": "node2",
-        "label": "Node 2",
-        "level": 1,
-        "expanded": true,
-        "children": [
-          {
-            "id": "node21",
-            "label": "Node 2.1",
-            "level": 2,
-            "children": []
-          },
-          {
-            "id": "node22",
-            "label": "Node 2.2",
-            "level": 2,
-            "children": []
-          }
-        ]
-      }
-    ]
-  }
+    }
 }
